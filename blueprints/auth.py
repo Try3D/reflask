@@ -1,9 +1,9 @@
-from flask import Blueprints, request, jsonify
-from flask_bcrypt import bcrypt
+from flask import Blueprint, request, jsonify
+from flask_bcrypt import bcrypt, check_password_hash, generate_password_hash
 
 from db import User, db
 
-auth = Blueprints("views", __name__)
+auth = Blueprint("views", __name__)
 
 
 @auth.route("/login", methods=["POST"])
@@ -12,10 +12,12 @@ def login():
     email = data.get("email")
     password = data.get("password")
 
+    print(email, password)
+
     user = User.query.filter_by(email=email).first()
 
-    if user and bcrypt.checkpw(password.encode("utf-8"), user.password.encode("utf-8")):
-        return jsonify({"userid": user.userid})
+    if user and check_password_hash(user.password, password):
+        return jsonify({"userid": user.id})
     else:
         return jsonify({"error": "Invalid credentials"}), 401
 
@@ -26,7 +28,7 @@ def register():
     email = data.get("email")
     password = data.get("password")
 
-    hashed_password = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt())
+    hashed_password = generate_password_hash(password).decode("utf-8")
 
     new_user = User(email=email, password=hashed_password)
     db.session.add(new_user)
